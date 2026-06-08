@@ -194,6 +194,69 @@ st.markdown(
       .esg-mini {
         margin-top: 14px;
       }
+      .esg-progress-card {
+        background: #FFFFFF;
+        border: 1px solid rgba(46,125,50,.20);
+        border-radius: 18px;
+        padding: 18px 20px;
+        box-shadow: 0 8px 22px rgba(31,41,51,.06);
+      }
+      .esg-progress-card h3 {
+        color: #0039A6;
+        margin: 0 0 6px;
+        font-size: 1.12rem;
+      }
+      .esg-progress-card .esg-progress-note {
+        color: #667085;
+        margin: 0 0 18px;
+        font-size: .92rem;
+      }
+      .esg-progress-row {
+        margin: 14px 0 18px;
+      }
+      .esg-progress-meta {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        margin-bottom: 8px;
+      }
+      .esg-progress-meta span {
+        color: #1F2933;
+        font-weight: 800;
+      }
+      .esg-progress-meta strong {
+        color: #2E7D32;
+        font-size: 1.25rem;
+      }
+      .esg-progress-track {
+        position: relative;
+        height: 18px;
+        width: 100%;
+        overflow: hidden;
+        border-radius: 999px;
+        background: #E7EEF5;
+        border: 1px solid #D9E2EC;
+      }
+      .esg-progress-fill {
+        height: 100%;
+        border-radius: 999px;
+        background: linear-gradient(90deg, #2E7D32, #007C92);
+      }
+      .esg-progress-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        margin-top: 4px;
+        padding: 10px 12px;
+        border-radius: 14px;
+        background: rgba(46,125,50,.08);
+        color: #1F2933;
+        font-weight: 750;
+      }
+      .esg-progress-badge strong {
+        color: #2E7D32;
+      }
       .macro-hero {
         padding: 22px 24px;
         border: 1px solid #E5EAF0;
@@ -818,28 +881,38 @@ def chart_macro_fx() -> go.Figure:
     return apply_fig_layout(fig, height=420, title="Impactos reportados de tipo de cambio")
 
 
-def chart_esg_energy() -> go.Figure:
+def esg_energy_progress_card() -> None:
     df = esg_energy_data()
-    fig = go.Figure()
-    fig.add_bar(
-        x=df["periodo"],
-        y=df["energia_propia_limpia_pct"],
-        marker_color=[COLORS["esg_green"], COLORS["autlan_teal"]],
-        text=[f"{v:.0%}" for v in df["energia_propia_limpia_pct"]],
-        textposition="outside",
-        name="Cobertura energética operativa",
+    rows = []
+    for _, row in df.iterrows():
+        pct = float(row["energia_propia_limpia_pct"])
+        rows.append(
+            f"""
+            <div class="esg-progress-row">
+              <div class="esg-progress-meta">
+                <span>{row['periodo']}</span>
+                <strong>{pct:.0%}</strong>
+              </div>
+              <div class="esg-progress-track">
+                <div class="esg-progress-fill" style="width: {pct:.0%};"></div>
+              </div>
+            </div>
+            """
+        )
+
+    st.markdown(
+        f"""
+        <div class="esg-progress-card">
+          <h3>Cobertura energética operativa</h3>
+          <p class="esg-progress-note">Participación de energía propia / limpia sobre el consumo energético total.</p>
+          {''.join(rows)}
+          <div class="esg-progress-badge">
+            Ahorros reportados 2025: <strong>US$10.1M</strong>
+          </div>
+        </div>
+        """,
+        unsafe_allow_html=True,
     )
-    fig.add_annotation(
-        x="2025",
-        y=0.25,
-        text="Ahorro US$10.1M",
-        showarrow=True,
-        arrowhead=2,
-        ay=-42,
-        font=dict(color=COLORS["esg_green"], size=13),
-    )
-    fig.update_yaxes(title="Consumo energético cubierto", tickformat=".0%", range=[0, 0.32])
-    return apply_fig_layout(fig, height=320, title="Energía propia / limpia")
 
 
 def download_button(label: str, df: pd.DataFrame, filename: str) -> None:
@@ -1348,7 +1421,7 @@ def macro_tab() -> None:
             "Aunque la cobertura financiera se enfoca en oro, FX y tasas, la integración energética funciona como una cobertura operativa natural. Reduce dependencia externa de energía, ayuda a estabilizar costos y complementa la estrategia de protección del FCF."
         )
     with esg_right:
-        st.plotly_chart(chart_esg_energy(), use_container_width=True)
+        esg_energy_progress_card()
         st.caption("Comparativo de energía propia / limpia: 2025: 25%; 1T26: 26%.")
 
     render_section(
