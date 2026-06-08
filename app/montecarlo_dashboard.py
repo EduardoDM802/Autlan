@@ -34,6 +34,7 @@ COLORS = {
     "white": "#FFFFFF",
     "gold": "#C79A24",
     "green": "#007C92",
+    "esg_green": "#2E7D32",
     "red": "#C2410C",
     "blue": "#0039A6",
     "grid": "rgba(31,41,51,.10)",
@@ -149,6 +150,49 @@ st.markdown(
       .strategy-text {
         color: #007C92;
         font-weight: 750;
+      }
+      .esg-card {
+        background:
+          linear-gradient(135deg, rgba(46,125,50,.08), rgba(0,57,166,.035)),
+          #FFFFFF;
+        border: 1px solid rgba(46,125,50,.22);
+        border-left: 6px solid #2E7D32;
+        border-radius: 18px;
+        padding: 18px 20px;
+        box-shadow: 0 8px 22px rgba(31,41,51,.06);
+        height: 100%;
+      }
+      .esg-card h3 {
+        color: #2E7D32;
+        margin: 0 0 8px;
+        font-size: 1.16rem;
+      }
+      .esg-kicker {
+        color: #2E7D32;
+        font-weight: 850;
+        font-size: .76rem;
+        letter-spacing: .08em;
+        text-transform: uppercase;
+        margin-bottom: 4px;
+      }
+      .esg-stat {
+        color: #1F2933;
+        font-size: clamp(1.45rem, 2.2vw, 2rem);
+        font-weight: 850;
+        letter-spacing: -0.03em;
+        margin: 4px 0;
+      }
+      .esg-substat {
+        color: #0039A6;
+        font-weight: 800;
+        margin: 0 0 10px;
+      }
+      .esg-card p {
+        color: #1F2933;
+        margin: 0;
+      }
+      .esg-mini {
+        margin-top: 14px;
       }
       .macro-hero {
         padding: 22px 24px;
@@ -573,6 +617,22 @@ def macro_factor_card(
     )
 
 
+def esg_indicator_card(*, compact: bool = False) -> None:
+    card_class = "esg-card esg-mini" if compact else "esg-card"
+    st.markdown(
+        f"""
+        <div class="{card_class}">
+          <div class="esg-kicker">Indicador ESG vinculado a la estrategia</div>
+          <h3>Energía propia / limpia</h3>
+          <div class="esg-stat">25%–26% del consumo energético</div>
+          <div class="esg-substat">Ahorros reportados 2025: US$10.1M</div>
+          <p>Este factor fortalece la estrategia de cobertura porque reduce la exposición operativa a choques de precios energéticos y mejora la resiliencia del flujo de caja.</p>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+
 def macro_financials_data() -> pd.DataFrame:
     return pd.DataFrame(
         {
@@ -610,6 +670,16 @@ def macro_fx_data() -> pd.DataFrame:
             "impacto": ["Perdida cambiaria 2025", "Reduccion deuda 2024"],
             "valor_usd_m": [-11.1, 14.1],
             "tipo": ["RIF negativo", "Beneficio por depreciacion MXN"],
+        }
+    )
+
+
+def esg_energy_data() -> pd.DataFrame:
+    return pd.DataFrame(
+        {
+            "periodo": ["2025", "1T26"],
+            "energia_propia_limpia_pct": [0.25, 0.26],
+            "ahorro_usd_m": [10.1, np.nan],
         }
     )
 
@@ -746,6 +816,30 @@ def chart_macro_fx() -> go.Figure:
     fig.add_hline(y=0, line_color=COLORS["muted"], line_dash="dot")
     fig.update_yaxes(title="Millones USD", tickprefix="$", ticksuffix="M")
     return apply_fig_layout(fig, height=420, title="Impactos reportados de tipo de cambio")
+
+
+def chart_esg_energy() -> go.Figure:
+    df = esg_energy_data()
+    fig = go.Figure()
+    fig.add_bar(
+        x=df["periodo"],
+        y=df["energia_propia_limpia_pct"],
+        marker_color=[COLORS["esg_green"], COLORS["autlan_teal"]],
+        text=[f"{v:.0%}" for v in df["energia_propia_limpia_pct"]],
+        textposition="outside",
+        name="Cobertura energética operativa",
+    )
+    fig.add_annotation(
+        x="2025",
+        y=0.25,
+        text="Ahorro US$10.1M",
+        showarrow=True,
+        arrowhead=2,
+        ay=-42,
+        font=dict(color=COLORS["esg_green"], size=13),
+    )
+    fig.update_yaxes(title="Consumo energético cubierto", tickformat=".0%", range=[0, 0.32])
+    return apply_fig_layout(fig, height=320, title="Energía propia / limpia")
 
 
 def download_button(label: str, df: pd.DataFrame, filename: str) -> None:
@@ -1066,6 +1160,8 @@ def dashboard_cobertura_tab(results) -> None:
         c7.metric("Mejora P50", fmt_money(metrics["diferencia_stats"]["p50"]))
         c8.metric("Pasan la cascada", fmt_pct(metrics["prob_pasa_todo"]))
 
+        esg_indicator_card(compact=True)
+
     render_section(
         "Distribuciones",
         "Resultado financiero simulado",
@@ -1239,6 +1335,21 @@ def macro_tab() -> None:
             "Corrección del oro o retraso de rampa reduce caja esperada.",
             "Put/collar de oro preserva downside sin perder todo el upside.",
         )
+
+    render_section(
+        "ESG operativo",
+        "Indicador ESG vinculado a la estrategia",
+        "La integración energética opera como una cobertura natural de costos y resiliencia de flujo.",
+    )
+    esg_left, esg_right = st.columns([0.95, 1.05])
+    with esg_left:
+        esg_indicator_card()
+        st.caption(
+            "Aunque la cobertura financiera se enfoca en oro, FX y tasas, la integración energética funciona como una cobertura operativa natural. Reduce dependencia externa de energía, ayuda a estabilizar costos y complementa la estrategia de protección del FCF."
+        )
+    with esg_right:
+        st.plotly_chart(chart_esg_energy(), use_container_width=True)
+        st.caption("Comparativo de energía propia / limpia: 2025: 25%; 1T26: 26%.")
 
     render_section(
         "Contexto financiero",

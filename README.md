@@ -2,6 +2,8 @@
 
 Dashboard ejecutivo en Streamlit para analizar el modelo Monte Carlo de cobertura de Autlan.
 
+Incluye un bloque ESG ejecutivo sobre energia propia / limpia como cobertura operativa natural complementaria a la estrategia financiera.
+
 ## Ejecutar localmente
 
 ```bash
